@@ -1,0 +1,88 @@
+""" This program fetches the list of articles and other information from Reddit website
+    subreddit:Golang"""
+
+""" Standard libraries, uses JSON library to extract the JSON received as a response via HTTP request response. Python requests
+    library is used to send and receive response"""
+
+import urllib
+import json
+import requests
+
+
+# Used functions
+# The below function calls the Reddit API and retrives the data in JSON form, Handles HTTPS errors and calls the Printing
+# and formatting function to extract the data from JSON and print it.
+def sendrequest(count,page_marker):
+    flag = True
+    while flag:
+
+        # Crawls to End of reddit pages with each page containing 25 news articles.
+        if page_marker == 'initial':
+            url= 'https://www.reddit.com/r/news.json?'
+        elif page_marker == 'none':
+            return
+        else:
+            url ='https://www.reddit.com/r/news.json?&after='+ page_marker
+            
+        headers = {'user-agent': 'my-app/0.0.1'}
+        r = requests.get(url, headers=headers)
+        #r = requests.get(r'http://reddit.com/r/golang.json')
+        count+=1
+        
+        if r.status_code == 429:
+            print  " Sending request again Due to HTTP ERROR:429, current count: " + str(count)
+            if count >9:
+                print " Too many Request Errors, program Terminated"
+            else:
+                sendrequest(count)
+        elif r.status_code == requests.codes.ok:
+            try :data=r.json()
+            except:
+                print "Error in Json decoding, Program terminated"
+                return
+            page_marker = extractinfo(data)
+        else:
+            print " Other Request Errors, program Terminated"
+            return
+    return
+
+# Function to print the data in format.
+
+def printinfo(author,url,title,num_comments,score):
+    
+    print "**************************************************************************"
+    print "Author: " + " " +author
+    print "Title: " + title
+    #print "URL:   " + url
+    print "Score: " + str(score)
+    print "Total Comments: " + str(num_comments)
+    print "*************************************************************************\n"
+
+# This function extracts the title, Author, URL and number of comments
+
+def extractinfo(data):
+    #print data
+    #print json.dumps(data, indent=4)
+    global total_item
+    k = data['data']['children']
+    for element in k:
+         printinfo(element['data']['author'],element['data']['url'],element['data']['title'],
+         element['data']['num_comments'],element['data']['score'])
+         total_item+=1
+    #Checks for next page availablity
+    if data['data']['after'] == None:
+        print "TOTAL NEWS ARTICLES RETRIVED\t" + str(total_item)
+        return 'none'
+    else:
+        return data['data']['after']
+        
+
+#main routine
+total_item = 0
+sendrequest(0,'initial')
+
+
+
+    
+    
+
